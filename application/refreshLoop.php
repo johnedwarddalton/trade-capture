@@ -14,7 +14,7 @@ function printLine($string_message = '') {
 for ($i=0; $i<loop_max; $i++){
 	$curl_handle = curl_init();
 	curl_setopt($curl_handle, CURLOPT_URL, url);
-	curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 5);
+	curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 10);
 	curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, 1);
 
 	$buffer = trim(curl_exec($curl_handle)); 

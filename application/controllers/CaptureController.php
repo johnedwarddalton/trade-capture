@@ -77,11 +77,12 @@ class CaptureController extends Zend_Controller_Action
     	//Get the  feed url from the configuration options
     	$options = $this->getConfigOptions();
     	$feedURL = $options['feed']['url'];
+    	$cacheDir = $options['cache']['directory'];
     	
     	// set cache - this allows us to check whether the feed has been updated
 
     	$cache = Zend_Cache::factory('Core','File', array('lifetime' => null),
-    			array('cache_dir' => APPLICATION_PATH . '/cache/'));
+    			array('cache_dir' => $cacheDir));
     	Zend_Feed_Reader::setCache($cache); 
     
     	// set Reader properties to allow Conditional GET Requests
