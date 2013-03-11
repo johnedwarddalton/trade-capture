@@ -123,17 +123,33 @@ class Application_Model_TradeMapper
 	 * 
 	 * @access protected
 	 */
-	public function fetchSome(Zend_Db_Table_Select $select, $order = 'execution_date DESC')
+	public function fetchSome(Zend_Db_Table_Select $select)
 	{
-		$rowset = $this->getDbTable()->fetchAll( $select->order($order));
+		$rowset = $this->getDbTable()->fetchAll( $select);
+		
 		$trades = array();
 		foreach ($rowset as $row){
 			$trade = new Application_Model_Trade();
 			$trade->exchangeArray($row);
 			$trades[] = $trade;
 		}
-		return $trades;
+		return $trades; 
+
 	}	
+	
+	/**
+	 *  returns the total number of rows that would be returned for the given SELECT statement
+	 * 
+	 * @param Zend_Db_Table_Select $select
+	 * @return integer
+	 */
+	public function countRows(Zend_Db_Table_Select $select)
+	{
+		$rowset = $this->getDbTable()->fetchAll( $select);
+		return $rowset[0];
+	}
+	
+	
 	
 }
 
