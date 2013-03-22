@@ -30,6 +30,7 @@ class ErrorController extends Zend_Controller_Action
         }
         
         // Log exception, if logger available
+        
         if ($log = $this->getLog()) {
             $log->log($this->view->message, $priority, $errors->exception);
             $log->log('Request Parameters', $priority, $errors->request->getParams());
@@ -43,6 +44,24 @@ class ErrorController extends Zend_Controller_Action
         $this->view->request   = $errors->request;
     }
 
+    /**
+     * error handler for command line calls
+     * 
+     * @acces public
+     */
+    public function cliAction ()
+    {
+    	$this->_helper->viewRenderer->setNoRender (true);
+    
+    	foreach ($this->_getParam ('error_handler') as $error)
+    	{
+    		if ($error instanceof Exception)
+    		{
+    			print $error->getMessage () . "\n";
+    		}
+    	}
+    }
+    
     public function getLog()
     {
         $bootstrap = $this->getInvokeArg('bootstrap');

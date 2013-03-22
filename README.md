@@ -13,29 +13,49 @@ ii)  Implementation of json-based, REST interface for data retrieval.
 Installation
 ------------
 
-The system requires access to a database with table called 'trade'.  This can be created by importing the SQL file 'tradecapture.sql' stored in the config directory. Application parameters are stored in the application.ini file 
+The system requires access to a database with table called 'trade'.  This can be created by importing the SQL file 'tradecapture.sql' stored in the config directory. Application parameters are stored in the application.ini file.  If required, a test database can also be specified in the configuration file. 
 
 
 Capture data
 ------------
 
-A capture of a single batch of data from the RSS feed is initiated by a call to the URL:  'capture/download'.  The RSS Reader will perform a conditional GET from the server and only update from the web if the data is new. 
+The capture mechanism is set up to run only from the command line.  There are four possible actions:
 
-The RSS feed is updated sporadically.  This necessitates continuous checking.  At present, this is done via the commandLine tool 'refreshLoop.php' which is designed to run at set intervals, up to a certain maximum number.   
+Download data:  php index.php capture download [-v/verbose].
+This initiates a one-off download and save of the RSS feed.
+
+Download at intervals:  php index.php capture loop
+Sets download to run at regular intervals for a maximum specified time.  The time between intervals and the cutoff time are specified in the configuration file.
+
+Upload from a CSV file: php index.php capture upload [-f/file FILENAME]
+Uploads data such as a daily download obtained from DTCC.  If no filename is specified, the RATES.csv in the data directory is assumed.
+
+Archive data:  php index.php capture archive
+
+ 
 
 
 REST API
 ------------
 
-GET rest/retrieve/format/json/trade/ID   returns an object representing a single trade
+Single trades:
+GET rest/retrieve/format/json/trade/ID   returns an object representing a single trade (sepcified by id);
 
-If trade is not specified, four other optional parameters can be specified: type, currency, since, minimum.
+Multiple trades:             
 
-So, for example:
-GET rest/retrieve/format/json/type/Option/currency/USD/since/3/minimum/10
+the `table` endpoint is designed to return JSON-formatted data suitable for use with the jQuery dataTables library.
+
+Four optional parameters are allowed:
+type - instrument type
+currency - trade currency
+since - time in hours of earliest trade
+minimum - minimum trade size
+
+Example:
+
+GET rest/table/format/json/type/Option/currency/USD/since/3/minimum/10
 returns an array of trades representing Dollar Options of at least 10mn in size executed in the last 3 hours
 
-A similar endpoint at rest/table retrieves the same information formatted for use with the jQuery dataTables plug-in 
 
   
 

@@ -62,6 +62,13 @@ CREATE TABLE `trade` (
   INDEX `execution_date` (`execution_date`),
   INDEX `currency` (`currency`),
   INDEX `inst_type` (`inst_type`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8; 
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;  
+
+
+-- Create trade archive table
+
+DROP TABLE IF EXISTS `trade_archive`;
+
+CREATE TABLE `trade_archive` LIKE `trade`;  
 
 

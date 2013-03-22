@@ -1,6 +1,8 @@
 <?php
 
-class RestControllerTest extends Zend_Test_PHPUnit_ControllerTestCase
+require_once 'Application/Test/ControllerTest.php';
+
+class RestControllerTest extends Application_Test_ControllerTest
 {
 
     public function setUp()
@@ -10,19 +12,38 @@ class RestControllerTest extends Zend_Test_PHPUnit_ControllerTestCase
     }
 
 
-    public function testTableAction()
+    public function testUnauthRestRequest()
     {
-        $params = array('action' => 'table', 'controller' => 'Rest', 'module' => 'default');
-        $url = $this->url($this->urlizeOptions($params));
-        $this->dispatch($url);
+       
+    	//$url = '/rest/table/'; 
+		$_SERVER['argv'] = array( 'index.php', 'rest', 'table');
+        $this->dispatch();
         
         // assertions
-        $this->assertModule($params['module']);
-        $this->assertController($params['controller']);
-        $this->assertAction($params['action']);
-        $this->assertQueryContentContains('div#view-content', 'Trade Id');
+        $this->assertModule('default');
+        $this->assertController('rest');
+        $this->assertAction('unauth');
     }
 
+    
+    public function testAuthRestRequest()
+    {
+  	 
+    	$request = $this->getRequest();
+    	$request->setHeader('Authorization', "Basic dG90YWxkZXJpdjp0ckBkZWMmcHR1cmU=");
+    	
+		$_SERVER['argv'] = array( 'index.php', 'rest', 'table');
+		$this->dispatch();   
+
+		
+
+    
+    	// assertions
+    	$this->assertModule('default');
+    	$this->assertController('rest');
+    	$this->assertAction('table');
+    	$this->assertQueryContentContains('table','Trade Id');
+    }
 
 }
 

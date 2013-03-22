@@ -13,13 +13,6 @@
  */
 class CaptureController extends Zend_Controller_Action
 {
-	/**
-	 * 
-	 * @var Zend_Log_Writer_Stream
-	 * 
-	 * @access protected
-	 */
-	protected $_logger;
 	
 	/**
 	 * instance of class which is used to communicate with database 
@@ -28,40 +21,86 @@ class CaptureController extends Zend_Controller_Action
 	 */
 	protected $_tradeMapper = NULL;
 	
+	
 	/**
 	 * sets up the controller
+	 * 
+	 * @access public
 	 */
     public function init()
     {
-
+    	    	
+    	//turn off views and rendering
+    	$this->_helper->layout->disableLayout();
+    	$this->_helper->viewRenderer->setNoRender(TRUE);
+    	
+		// redirect action if called via http
+    	if (!Zend_Registry::get('cli')){
+    		$request->setActionName('http');	
+    	}
     }
 
     /**
+     * sets the behaviour if called from http.
+     * Currently returns a 404 error
+     * 
+     * @access public
+     */
+    public function httpAction()
+    {
+    	$response = $this->getResponse();
+    	$response->setHttpResponseCode(404);
+    }
+    
+    /**
      * default action
+     * 
+     * @access public
      */
     public function indexAction()
     {
 
     }
 
-
+	/**
+	 *   loops the download - we need more frequent updates than cron can offer
+	 *   
+	 *   @access public
+	 */
+    public function loopAction()
+    {
+	
+    	$options = $this->_getConfigOptions();
+    	$interval = $options['loop']['interval'];
+    	$timeout = $options['loop']['timeout'];
+    	
+    	$start = time();
+    	$response = $this->getResponse();
+    	
+    	while (time() < $start + $timeout){
+    		$this->downloadAction();
+    		if ($this->_getVerbose()){
+    			$response->sendResponse();
+    			$response->clearBody();	
+    		}
+    		sleep($interval);
+    	}
+    }
+    
     /**
      * reads the RSS data and, if there is any new data, saves to the database
      * 
      * @access public
      */
     public function downloadAction()
-    {	 	
-    	//we don't require any output so turn off views and rendering
-    	$this->_helper->layout->disableLayout();
-    	$this->_helper->viewRenderer->setNoRender(TRUE);
-    	
+    {	
+
     	// read the RSS feed and get a list of transactions
-    	$transactions = $this->processFeedData ($this->getFeedData());
+    	$transactions = $this->_processFeedData ($this->_getFeedData());
     	
     	//process each indivual transaction
     	foreach ($transactions as $transaction){
-    		$this->updateDatabase($transaction);
+    		$this->_updateDatabase($transaction);
     	}
     }
     
@@ -72,35 +111,57 @@ class CaptureController extends Zend_Controller_Action
      */
     public function uploadAction()
     {
-    	//we don't require any output so turn off views and rendering
-    	$this->_helper->layout->disableLayout();
-    	$this->_helper->viewRenderer->setNoRender(TRUE);
-    	 
     	// read the File feed and process each transaction
-    	$this->processFileData ();
-    	 
+    	$this->_processFileData ();	 
     }
     
+    /**
+     * archives data from trade table
+     * 
+     * @access protected
+     */
+    public function archiveAction()
+    {
+    	$db = $this->getInvokeArg('bootstrap')->getPluginResource('db')->getDbAdapter();
+    	$options = $this->_getConfigOptions();
+    	$archive_days = $options['archive']['days'];
+    	
+ 
+    	$stmt = $db->query(
+    		'INSERT IGNORE INTO trade_archive SELECT * FROM trade WHERE execution_date < DATE_SUB( NOW(), INTERVAL ? DAY)',
+    		$archive_days
+    	);
+    	if ( !intval($stmt->errorCode())){
+    		$stmnt = $db->query(
+    			'DELETE FROM trade WHERE execution_date < DATE_SUB( NOW(), INTERVAL ? DAY)',
+    			$archive_days
+    		);
+    	}
+    	else{
+    		Zend_Registry::get('logger')->
+    		    log('Error archiving data. SQL Error: ' . $stmt->errorCode(), Zend_Log::ERR);
+    	}   			
+    }
 
     /**
      * reads the RSS feeds and extracts the 'description' field from each one.
-     * Uses caching and http conditional get to ensure that the feed is only
+     * Uses caching and http conditional GET to ensure that the feed is only
      * read if it has been updated
      * 
      * @return array 
      */
-    protected function getFeedData()
+    protected function _getFeedData()
     {
     
     	//Get the  feed url from the configuration options
-    	$options = $this->getConfigOptions();
-    	$feedURL = $options['feed']['url'];
-    	$cacheDir = $options['cache']['directory'];
+    	$options = $this->_getConfigOptions();
+    	$feed_url = $options['feed']['url'];
+    	$cache_dir = $options['cache']['directory'];
     	
     	// set cache - this allows us to check whether the feed has been updated
 
     	$cache = Zend_Cache::factory('Core','File', array('lifetime' => null),
-    			array('cache_dir' => $cacheDir));
+    			array('cache_dir' => $cache_dir));
     	Zend_Feed_Reader::setCache($cache); 
     
     	// set Reader properties to allow Conditional GET Requests
@@ -113,7 +174,7 @@ class CaptureController extends Zend_Controller_Action
     	Zend_Feed_Reader::getHttpClient()->setAdapter($adapter);    		
     
     	// interrogate the RSS feed
-    	$rssData = Zend_Feed_Reader::import($feedURL);
+    	$rss_data = Zend_Feed_Reader::import($feed_url);
     	
     	// response status will be 200 if new data, 304 if not modified
     	$responseStatus = Zend_Feed_Reader::getHttpClient()->getLastResponse()->getStatus();
@@ -122,25 +183,36 @@ class CaptureController extends Zend_Controller_Action
     	
     	// Only process if new data
     	if (200 === $responseStatus){
-    		foreach ($rssData as $item){
+    		foreach ($rss_data as $item){
     			$entry['description']=$item->getDescription();
     			$entries[]=$entry;
     		}
+    		if ($this->_getVerbose()){
+    			$this->getResponse()
+    				->appendBody(new Zend_Date() . ': ' . count($entries) . ' new entries downloaded from rss feed' . PHP_EOL);
+    		}	
     	} 
+    	else{
+    		if ($this->_getVerbose()){
+    			$this->getResponse()->appendBody(new Zend_Date() . ': ' . 'No new data found' . PHP_EOL);
+    		}
+    	}
 	
     	return $entries;
     }
     
     /**
-     * reads the archive file instead of the live feed.
+     * reads a csv file, instead of the live feed.
      *
      * @return array
+     * 
+     * @access protected
      */
-    protected function processFileData()
+    protected function _processFileData()
     {
     
     	//Get the datafile name from the configuration options
-    	$options = $this->getConfigOptions();
+    	$options = $this->_getConfigOptions();
     	$params = $this->getRequest()->getParams();
     	$data_dir = $options['data']['dir'];
     		if (isset ($params['file'])){
@@ -159,7 +231,7 @@ class CaptureController extends Zend_Controller_Action
     			$feed_data['depository'] = 'DTCC';
     			$transaction = new Application_Model_Transaction();
     			$transaction->populateFromDescriptionData($feed_data);
-    			$this->updateDatabase($transaction);
+    			$this->_updateDatabase($transaction);
     		}	
 		}
 		fclose($file_handle);
@@ -175,10 +247,10 @@ class CaptureController extends Zend_Controller_Action
      * 
      * @access protected
      */
-    protected function processFeedData( $entries)
+    protected function _processFeedData( $entries)
     {
     	if (count($entries)){
-    		$options = $this->getConfigOptions();
+    		$options = $this->_getConfigOptions();
     		$header_file = $options['data']['dir'] . $options['data']['header'];
     		//read the data fields from file provided by DTCC  http:/dtcc.com
     		$header = fopen($header_file, 'r');
@@ -202,7 +274,7 @@ class CaptureController extends Zend_Controller_Action
     			$transactions[]=$transaction;
     		}
     		else{
-    			$this->getLogger()->
+    			Zend_Registry::get('logger')->
     			    log('Feed data length does not match. Specification may have changed', Zend_Log::WARN);
     		}
     		
@@ -219,20 +291,20 @@ class CaptureController extends Zend_Controller_Action
      * 
      * @access protected
      */
-    protected function updateDatabase(Application_Model_Transaction $transaction){
+    protected function _updateDatabase(Application_Model_Transaction $transaction){
     	$trade_data = $transaction -> getTradeData();
     	switch ($transaction->getAction()) {
     		case 'NEW':
-    			$this->saveIfTrade($trade_data);
+    			$this->_saveIfTrade($trade_data);
     			break;
     			
     		case 'CANCEL' :
-    			$this->getTradeMapper()->delete($trade_data['trade_id']);
+    			$this->_getTradeMapper()->delete($trade_data['trade_id']);
     			break;
     	
     		case 'CORRECT' :
-    			$this->getTradeMapper()->delete($trade_data['trade_id']);
-    			$this->saveIfTrade($trade_data);
+    			$this->_getTradeMapper()->delete($trade_data['trade_id']);
+    			$this->_saveIfTrade($trade_data);
     			break;
     		
     		default:
@@ -249,11 +321,11 @@ class CaptureController extends Zend_Controller_Action
      * 
      * @access protected
      */
-    protected function saveIfTrade($data){
+    protected function _saveIfTrade($data){
     	switch (strtolower($data['trans_type']) ){
     		case 'trade' :
     
-    			$this->getTradeMapper()->save($data);
+    			$this->_getTradeMapper()->save($data);
     			break;
     		case 'amendment':
     		case 'novation':
@@ -264,20 +336,6 @@ class CaptureController extends Zend_Controller_Action
     	}
     }
     
-    /**
-     * instantiates _logger if it does not already exist and returns it
-     * 
-     * @return Zend_Log_Writer_Stream
-     * 
-     * @access protected
-     */   
-    protected function getLogger(){
-    	if (!$this->_logger){
-    		$writer = new Zend_Log_Writer_Stream('php://stderr');
-    		$this->_logger = new Zend_Log($writer);
-    	}
-    	return $this->_logger;
-    }
     
 	/**
 	 * helper function which returns the initial options
@@ -286,7 +344,7 @@ class CaptureController extends Zend_Controller_Action
 	 * 
 	 * @access protected
 	 */
-    protected function getConfigOptions(){
+    protected function _getConfigOptions(){
     	return $this->getFrontController()->getParam('bootstrap')->getApplication()->getOptions();
     }
     
@@ -297,13 +355,23 @@ class CaptureController extends Zend_Controller_Action
      * 
      * @access protected
      */
-    protected function getTradeMapper(){
+    protected function _getTradeMapper(){
     	if (!$this->_tradeMapper){
     		$this->_tradeMapper = new Application_Model_TradeMapper();
     	}
     	return $this->_tradeMapper;
     }
     
+    /**
+     * returns the value of the 'verbose' flag
+     *
+     * @return boolean
+     *
+     * @access protected
+     */
+    protected function _getVerbose(){
+    	return $this->getRequest()->getParam('verbose', false);
+    }
     
     
 }

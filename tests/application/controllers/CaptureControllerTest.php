@@ -1,27 +1,35 @@
 <?php
 
-class CaptureControllerTest extends Zend_Test_PHPUnit_ControllerTestCase
-{
+require_once 'Application/Test/ControllerTest.php';
 
-    public function setUp()
-    {
-        $this->bootstrap = new Zend_Application(APPLICATION_ENV, APPLICATION_PATH . '/configs/application.ini');
-        parent::setUp();
-    }
-
+class CaptureControllerTest extends Application_Test_ControllerTest
+{	
     public function testDownloadAction()
     {
-        $params = array('action' => 'download', 'controller' => 'Capture', 'module' => 'default');
-        $url = $this->url($this->urlizeOptions($params));
-        $this->dispatch($url);    
+
+		$_SERVER['argv'] = array( 'index.php', 'capture', 'download');
+
+        $this->dispatch();    
 
 		//assertions
 		$this->assertModule('default');
 		$this->assertAction('download');  
-		$this->assertController('Capture');
+		$this->assertController('capture');
+    }
+    
+    public function testArchiveAction()
+    {
+    
+    	$_SERVER['argv'] = array( 'index.php', 'capture', 'archive');
+    
+    	$this->dispatch();
+    
+    	//assertions
+    	$this->assertModule('default');
+    	$this->assertAction('archive');
+    	$this->assertController('capture');
     }
                       
-
 }
 
 
