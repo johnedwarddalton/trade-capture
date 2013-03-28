@@ -30,7 +30,7 @@ Sets download to run at regular intervals for a maximum specified time.  The tim
 Upload from a CSV file: php index.php capture upload [-f/file FILENAME]
 Uploads data such as a daily download obtained from DTCC.  If no filename is specified, the RATES.csv in the data directory is assumed.
 
-Archive data:  php index.php capture archive
+Archive data:  php index.php capture archive [-v/verbose]
 
  
 

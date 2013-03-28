@@ -114,34 +114,27 @@ class CaptureController extends Zend_Controller_Action
     	// read the File feed and process each transaction
     	$this->_processFileData ();	 
     }
-    
+
     /**
-     * archives data from trade table
+     * archives the data in order to keep main query table small
      * 
-     * @access protected
+     * @access public
      */
     public function archiveAction()
     {
-    	$db = $this->getInvokeArg('bootstrap')->getPluginResource('db')->getDbAdapter();
     	$options = $this->_getConfigOptions();
     	$archive_days = $options['archive']['days'];
-    	
  
-    	$stmt = $db->query(
-    		'INSERT IGNORE INTO trade_archive SELECT * FROM trade WHERE execution_date < DATE_SUB( NOW(), INTERVAL ? DAY)',
-    		$archive_days
-    	);
-    	if ( !intval($stmt->errorCode())){
-    		$stmnt = $db->query(
-    			'DELETE FROM trade WHERE execution_date < DATE_SUB( NOW(), INTERVAL ? DAY)',
-    			$archive_days
-    		);
+    	$archiver = new Application_Model_TradeArchiver();
+    	$num_archived = $archiver->archive($archive_days);
+    	
+    	if ($this->_getVerbose()){
+    		$this->getResponse()
+    		->appendBody($num_archived . ' trades archived' . PHP_EOL);
     	}
-    	else{
-    		Zend_Registry::get('logger')->
-    		    log('Error archiving data. SQL Error: ' . $stmt->errorCode(), Zend_Log::ERR);
-    	}   			
     }
+    
+
 
     /**
      * reads the RSS feeds and extracts the 'description' field from each one.
