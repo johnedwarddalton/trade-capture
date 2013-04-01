@@ -36,7 +36,7 @@ class CaptureController extends Zend_Controller_Action
     	
 		// redirect action if called via http
     	if (!Zend_Registry::get('cli')){
-    		$request->setActionName('http');	
+    		$this->getRequest()->setActionName('http');	
     	}
     }
 
