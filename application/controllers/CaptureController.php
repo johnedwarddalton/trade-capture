@@ -167,27 +167,47 @@ class CaptureController extends Zend_Controller_Action
     	Zend_Feed_Reader::getHttpClient()->setAdapter($adapter);    		
     
     	// interrogate the RSS feed
-    	$rss_data = Zend_Feed_Reader::import($feed_url);
+    	try {
+    		$rss_data = Zend_Feed_Reader::import($feed_url);
+    	}
+    	catch (Zend_Feed_Exception $e) {
+    		// feed import failed
+    		Zend_Registry::get('logger')->
+    			    log('Exception importing feed: ' . $e->getMessage(), Zend_Log::WARN); 
+    	}
+    	catch (Zend_Http_Client_Exception $e) {
+    		Zend_Registry::get('logger')->
+    			    log('Error with URL: ' . $e->getMessage(), Zend_Log::WARN); 
+    	}
+    	catch (Exception $e) {
+  		Zend_Registry::get('logger')->
+    			    log('Unknown error when reading feed: ' . $e->getMessage(), Zend_Log::WARN); 
+		}
     	
+		$entries = array();
+		
     	// response status will be 200 if new data, 304 if not modified
-    	$responseStatus = Zend_Feed_Reader::getHttpClient()->getLastResponse()->getStatus();
-   
-    	$entries = array();
+    	$last_response = Zend_Feed_Reader::getHttpClient()->getLastResponse();
+   		
+    	if ($last_response){
+    		$response_status = $last_response->getStatus();
     	
-    	// Only process if new data
-    	if (200 === $responseStatus){
-    		foreach ($rss_data as $item){
-    			$entry['description']=$item->getDescription();
-    			$entries[]=$entry;
-    		}
-    		if ($this->_getVerbose()){
-    			$this->getResponse()
-    				->appendBody(new Zend_Date() . ': ' . count($entries) . ' new entries downloaded from rss feed' . PHP_EOL);
-    		}	
-    	} 
-    	else{
-    		if ($this->_getVerbose()){
-    			$this->getResponse()->appendBody(new Zend_Date() . ': ' . 'No new data found' . PHP_EOL);
+    	
+    		// Only process if new data
+    		if (200 === $response_status){
+    			foreach ($rss_data as $item){
+    				$entry['description']=$item->getDescription();
+    				$entries[]=$entry;
+    			}
+    			if ($this->_getVerbose()){
+    				$this->getResponse()
+    					->appendBody(new Zend_Date() . ': ' . count($entries) . ' new entries downloaded from rss feed' . PHP_EOL);
+    			}	
+    		} 
+    		else{
+    			if ($this->_getVerbose()){
+    				$this->getResponse()->appendBody(new Zend_Date() . ': ' . 'No new data found' . PHP_EOL);
+    			}
     		}
     	}
 	
