@@ -182,7 +182,8 @@ class Application_Model_Transaction
 
 		/* Amounts are given as rounded amounts in currency formats
 		 * with optional characters e.g. 20,000,000+.  We need to parse these */
-		$int_value 	= (int) str_replace(',',NULL,$feedData['ROUNDED_NOTIONAL_AMOUNT_1']);
+		$data['not_amt_capped'] = strpos($feedData['ROUNDED_NOTIONAL_AMOUNT_1'],"+") ? true : false;
+ 		$int_value 	= (int) str_replace(',',NULL,$feedData['ROUNDED_NOTIONAL_AMOUNT_1']);
 		$data['not_amount_1'] 	= round($int_value / 1000000.0,6);
 		$int_value 	= (int) str_replace(',',NULL,$feedData['ROUNDED_NOTIONAL_AMOUNT_2']);
 		$data['not_amount_2'] 	= round($int_value / 1000000.0,6);
