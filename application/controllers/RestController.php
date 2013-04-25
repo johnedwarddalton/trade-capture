@@ -128,7 +128,7 @@ class RestController extends Zend_Controller_Action
     	
     	//list of columns to be returned
     	$columns = array(
-    			'trade_id','cleared', 'execution_date', 'eff_date', 'end_date', 'term', 'not_curr_1', 'not_curr_2', 'inst_type',
+    			'unix_timestamp(creation_date)','trade_id','cleared', 'execution_date', 'eff_date', 'end_date', 'term', 'not_curr_1', 'not_curr_2', 'inst_type',
     			'inst_subtype', 'price', 'not_amount_1', 'not_amt_capped', 'not_amount_2','und_asset_1', 'und_asset_2', 'opt_strike',
     			 'opt_type','opt_curr', 'opt_premium', 'opt_start', 'opt_expiry','opt_tenor', 'opt_add_price_type_1', 'opt_add_price_1', 
     	);

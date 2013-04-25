@@ -174,14 +174,17 @@ class CaptureController extends Zend_Controller_Action
     		// feed import failed
     		Zend_Registry::get('logger')->
     			    log('Exception importing feed: ' . $e->getMessage(), Zend_Log::WARN); 
+    		return null;
     	}
     	catch (Zend_Http_Client_Exception $e) {
     		Zend_Registry::get('logger')->
     			    log('Error with URL: ' . $e->getMessage(), Zend_Log::WARN); 
+    		return null;
     	}
     	catch (Exception $e) {
   		Zend_Registry::get('logger')->
-    			    log('Unknown error when reading feed: ' . $e->getMessage(), Zend_Log::WARN); 
+    			    log('Unknown error when reading feed: ' . $e->getMessage(), Zend_Log::WARN);
+    		return null; 
 		}
     	
 		$entries = array();
