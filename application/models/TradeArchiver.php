@@ -100,6 +100,7 @@ class Application_Model_TradeArchiver
 		
 		//  Object-oriented MVC approach  
 		//get the relevant data from the trade table
+		/*
 		$select = $this->getDbTable()->select();
 		$select->where('execution_date <  DATE_SUB(NOW(), INTERVAL ? DAY)', $num_of_days);
 		$rowset = $this->getDbTable()->fetchAll($select);
@@ -112,10 +113,9 @@ class Application_Model_TradeArchiver
 		}
 		
 		return count($rowset);	
-
+		*/
 		
 		// More efficient but less object-oriented approach - database dependent
-		/*
 		$adapter = $this->getDbArchive()->getAdapter();
 		$stmt = $adapter->query('INSERT IGNORE INTO trade_archive SELECT * FROM trade WHERE 
 				execution_date < DATE_SUB(NOW(), INTERVAL ? DAY)', $num_of_days);
@@ -123,7 +123,7 @@ class Application_Model_TradeArchiver
 				execution_date < DATE_SUB(NOW(), INTERVAL ? DAY)', $num_of_days);
 	   
 		return $stmt->rowCount();
-		*/
+		
 		
 	}
 	
