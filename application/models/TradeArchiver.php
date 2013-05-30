@@ -117,8 +117,9 @@ class Application_Model_TradeArchiver
 		
 		// More efficient but less object-oriented approach - database dependent
 		$adapter = $this->getDbArchive()->getAdapter();
-		$stmt = $adapter->query('INSERT IGNORE INTO trade_archive SELECT * FROM trade WHERE 
-				execution_date < DATE_SUB(NOW(), INTERVAL ? DAY)', $num_of_days);
+		//$stmt = $adapter->query('INSERT IGNORE INTO trade_archive SELECT * FROM trade WHERE 
+		//		execution_date < DATE_SUB(NOW(), INTERVAL ? DAY)', $num_of_days);
+		$stmt = $adapter->query('INSERT IGNORE INTO trade_archive SELECT * FROM trade');
 		$adapter->query('DELETE FROM trade WHERE 
 				execution_date < DATE_SUB(NOW(), INTERVAL ? DAY)', $num_of_days);
 	   
