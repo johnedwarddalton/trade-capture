@@ -281,13 +281,18 @@ class RestController extends Zend_Controller_Action
     	if (isset($modifiers['minimum'])){
     		$select->where('not_amount_1 >= ?', $modifiers['minimum']);
     	}
-    	if (isset($modifiers['since'])){
-    		$since = min( $options['rest']['maximum_since'], $modifiers['since']);
+    	if (isset($modifiers['last'])){
+    		$select->limit($modifiers['last'], 0);
     	}
-    	else{
-    		$since = $options['rest']['default_since'];
+    	else {
+    		if (isset($modifiers['since'])){
+    			$since = min( $options['rest']['maximum_since'], $modifiers['since']);
+    		}
+    		else{
+    			$since = $options['rest']['default_since'];
+    		}
+    		$select->where('execution_date >=  DATE_SUB(utc_timestamp(), INTERVAL ? HOUR)', $since);
     	}
-    	$select->where('execution_date >=  DATE_SUB(utc_timestamp(), INTERVAL ? HOUR)', $since);
     }
     
     /**
