@@ -125,6 +125,7 @@ class RestController extends Zend_Controller_Action
     {
 
     	$params = $this->getRequest()->getParams();
+    	$options = $this->_getConfigOptions();
     	
     	//list of columns to be returned
     	$columns = array(
@@ -133,9 +134,8 @@ class RestController extends Zend_Controller_Action
     			 'opt_type','opt_curr', 'opt_premium', 'opt_start', 'opt_expiry','opt_tenor', 'opt_add_price_type_1', 'opt_add_price_1', 
     	);
     	
-    	$results = $this->_tradeQuery ($columns);
-    	
-    	
+    	$results = $this->_getTradeMapper()->tradeQuery ($columns,$params, $options);
+    	    	
     	$entries=array();
     	foreach ($results['trades'] as $trade){
     		$entry = array();
@@ -171,129 +171,7 @@ class RestController extends Zend_Controller_Action
     	$this->view->iTotalDisplayRecords = $results['filtered_rows'];
     }
     
-    /**
-     * extracts the query parameters and returns the relevant data
-     * from the database
-     *
-     * @param array $columns         column names to be fetched
-     *
-     */
-    protected function _tradeQuery(array $columns)
-    {
-    	$modifiers = $this->getRequest()->getParams();
-    	$select = $this->_getTradeMapper()->getDbTable()->select();	 
-    
-    	// get the total number of columns without any filtering
-    	$select->from('trade', array('num' => 'count(trade_id)'));
-    	$this->_setSearchParameters ($select); 
-    	$result = $this->_getTradeMapper()->countRows($select);
-    	$total_rows = $result['num'];
-    	 
 
-    	$total_filtered_rows = $total_rows;
-    	//dataTables filtering
-    	if (isset($modifiers['sSearch'])){
-    		$search_string = $modifiers['sSearch'];
-    		if ( $search_string  !== "" ){
-    			$num_cols = count($columns);
-    			$filter = array();
-    			for ( $i=0 ; $i<$num_cols ; $i++ ){
-    				$filter[] = $columns[$i]. " LIKE '%" . $search_string  . "%'";
-    			}
-    			$str_where = implode(' OR ', $filter);
-    			 
-    			// count total number of rows with filtering
-    			$select = $this->_getTradeMapper()->getDbTable()->select();
-    			$select->from('trade', array('num' => 'count(trade_id)'));
-    			$this->_setSearchParameters($select);
-    			$select->where($str_where);
-    			$result = $this->_getTradeMapper()->countRows($select);
-    			$total_filtered_rows = $result['num'];    			 
-    		}     
-    	}
-    	 
-    	// reset query
-    	$select = $this->_getTradeMapper()->getDbTable()->select();
-    	$select->from('trade',$columns);
-    	$this->_setSearchParameters ( $select);
-    	if ( isset($search_string) && ('' !== $search_string ) ) {
-    		$select->where($str_where);
-    	}
-    	 
-    	//dataTable Paging;
-    	if ( isset( $modifiers['iDisplayStart'] ) && $modifiers['iDisplayLength'] != '-1' ){
-    		$select->limit($modifiers['iDisplayLength'], $modifiers['iDisplayStart']);
-    	}
-    	 
-    	//default sorting
-    	$str_order = 'execution_date DESC';
-    	//dataTable sorting
-    	if ( isset( $modifiers['iSortCol_0'] ) )
-    	{
-    		$str_order = array();
-    		for ( $i=0; $i<intval( $modifiers['iSortingCols'] ); $i++ ){
-    			if ( $modifiers[ 'bSortable_' . intval($modifiers['iSortCol_' . $i]) ] == "true" ){
-    				$str_order[] =  $modifiers[ 'mDataProp_' . intval( $modifiers['iSortCol_'.$i] ) ] . ' ' .  $modifiers['sSortDir_' . $i] ;
-    			}
-    		}
-    	}
-    	$select->order($str_order);
-    
-    	 
-    	$trades = $this->_getTradeMapper()->fetchSome($select);
-    	 
-    	if (isset($modifiers['sEcho'])){
-    		$echo = intval($modifiers['sEcho']);
-    	}
-    	else{
-    		$echo = 0;
-    	}
-    
-    	return array('echo' =>$echo, 'total_rows' => $total_rows, 'filtered_rows' => $total_filtered_rows, 'trades' => $trades);
-    }
-    
-    
-    /**
-     * 
-     * @param Zend_DB_Table_Select $select
-     * 
-     * @access protected
-     */
-    protected function _setSearchParameters( Zend_DB_Table_Select $select){
-    	
-    	$modifiers = $this->getRequest()->getParams();
-    	$options = $this->_getConfigOptions();
-    	if (isset($modifiers['currency'])){
-    		$select->where('not_curr_1 = ?', $modifiers['currency']);
-    	}
-    	if (isset($modifiers['type'])){
-    		if ( 'AllOptions' === $modifiers['type']){
-    			$select->where('inst_type IN (?) ', array('Option', 'CapFloor'));
-    		}
-    		else{
-    			$select->where('inst_type = ?', $modifiers['type']);
-    		}
-    	}
-    	if (isset($modifiers['subtype'])){
-    		
-    		$select->where('inst_subtype = ?', $modifiers['subtype']);
-    	}
-    	if (isset($modifiers['minimum'])){
-    		$select->where('not_amount_1 >= ?', $modifiers['minimum']);
-    	}
-    	if (isset($modifiers['last'])){
-    		$select->limit($modifiers['last'], 0);
-    	}
-    	else {
-    		if (isset($modifiers['since'])){
-    			$since = min( $options['rest']['maximum_since'], $modifiers['since']);
-    		}
-    		else{
-    			$since = $options['rest']['default_since'];
-    		}
-    		$select->where('execution_date >=  DATE_SUB(utc_timestamp(), INTERVAL ? HOUR)', $since);
-    	}
-    }
     
     /**
      * instantiates _tradeMapper if it does not already exist and returns it
