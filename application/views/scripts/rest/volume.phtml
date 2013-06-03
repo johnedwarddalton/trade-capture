@@ -1,0 +1,20 @@
+<br /><br />
+<div id="view-content">
+<p>Volume Data</p>
+<table>
+	<thead>
+		<tr>
+			<td>Date</td>
+			<td>Daily Volume</td>
+		</tr>
+	</thead>
+	<tbody>
+		<?php foreach ($this->entries as $entry): ?>
+		<tr>
+			<td><?php echo $this->escape($entry['date']); ?></td>
+			<td><?php echo $this->escape($entry['volume']); ?></td>
+		</tr>
+		<?php endforeach; ?>
+		</tbody>		
+	</table>
+</div>

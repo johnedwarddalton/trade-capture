@@ -33,7 +33,8 @@ class RestController extends Zend_Controller_Action
     	//  allow actions to return json data if specified
         $contextSwitch= $this->getHelper('contextSwitch');
     	$contextSwitch->addActionContext('retrieve', 'json')->initContext();
-    	$contextSwitch->addActionContext('table', 'json')->initContext();	
+    	$contextSwitch->addActionContext('table', 'json')->initContext();
+    	$contextSwitch->addActionContext('volume', 'json')->initContext();
     }
     
     
@@ -153,25 +154,51 @@ class RestController extends Zend_Controller_Action
     			$entry['opt_prem_bps'] = round(10000 * $opt_prem_val / $trade->not_amount_1,1);
     		}
     		
-    		$date = new Zend_Date($trade->execution_date);
+    		//ensure we have a locale set for Zend_Date functions
+    		$locale = new Zend_Locale('en_GB');
+    		
+    		$date = new Zend_Date($trade->execution_date, $locale);
     		$entry['exec_date_short'] = $date->toString("EEE H:mm");
-    		$date = new Zend_Date($trade->eff_date);
+    		$date = new Zend_Date($trade->eff_date, $locale);
     		$entry['eff_date_short'] = $date->toString("MMM-YY");
-    		$date = new Zend_Date($trade->end_date);
+    		$date = new Zend_Date($trade->end_date,$locale);
     		$entry['end_date_short'] = $date->toString("MMM-YY");
-    		$date = new Zend_Date($trade->opt_start);
+    		$date = new Zend_Date($trade->opt_start,$locale);
     		$entry['opt_start_short'] = $date->toString("MMM-YY");
-    		$date = new Zend_Date($trade->opt_expiry);
+    		$date = new Zend_Date($trade->opt_expiry,$locale);
     		$entry['opt_expiry_short'] = $date->toString("MMM-YY");
     		$entries[] = $entry;
     	}
     	$this->view->aaData = $entries;
+    	$this->view->daily_vol = $results['daily_vol'];
     	$this->view->sEcho = $results['echo'];
     	$this->view->iTotalRecords = $results['total_rows'];
     	$this->view->iTotalDisplayRecords = $results['filtered_rows'];
     }
     
-
+    /**
+     *  max and average of daily notional amounts
+     *
+     * @return array
+     *
+     * @access public
+     */
+    public function volumeAction()
+    {
+    
+    	$params = $this->getRequest()->getParams();
+    	$options = $this->_getConfigOptions();
+    	$results = $this->_getTradeMapper()->volumeHistory ($params, $options);
+    	$entries = array();
+    	foreach ($results as $row){
+    		$entry =  array();
+    		$entry['date'] = $row['date(execution_date)'];
+    		$entry['volume'] = $row['sum(not_amount_1)'];
+    		$entries[] = $entry;
+    	}
+    	$this->view->entries = $entries;
+	
+    }
     
     /**
      * instantiates _tradeMapper if it does not already exist and returns it

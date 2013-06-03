@@ -12,6 +12,7 @@
 class Application_Model_TradeMapper
 {
 	protected $_dbTable;
+	protected $_dbArchive;
 	
 	/**
 	 * setter for _dbTable
@@ -253,7 +254,16 @@ class Application_Model_TradeMapper
     
     	 
     	$trades = $this->fetchSome($select);
-    	 
+
+    	$daily_vol = 0;
+    	if (isset($modifiers['bVol'])){
+    		$select = $this->getDbTable()->select();
+    		$select->from('trade', 'sum(not_amount_1)');
+    		$this->_setSearchParameters ( $select, $modifiers, $options, true);
+    		$rowset = $this->getDbTable()->fetchAll( $select);
+    		$daily_vol = $rowset[0]['sum(not_amount_1)'];
+    	}
+    	
     	if (isset($modifiers['sEcho'])){
     		$echo = intval($modifiers['sEcho']);
     	}
@@ -261,7 +271,25 @@ class Application_Model_TradeMapper
     		$echo = 0;
     	}
     
-    	return array('echo' =>$echo, 'total_rows' => $total_rows, 'filtered_rows' => $total_filtered_rows, 'trades' => $trades);
+    	return array('echo' =>$echo, 'total_rows' => $total_rows, 'filtered_rows' => $total_filtered_rows, 'trades' => $trades, 'daily_vol' => $daily_vol);
+    }
+    
+
+    public function volumeHistory(array $modifiers, array $options)
+    {
+    	 
+    	$select = $this->getDbArchive()->select();
+    	$select->from('trade_archive',array('date(execution_date)', 'sum(not_amount_1)'));
+    	$select->group('date(execution_date)');
+    	$this->_setSearchParameters ( $select, $modifiers, $options);
+
+    	//default sorting
+    	$str_order = 'execution_date ASC';
+    	$select->order($str_order);
+    	$results = $this->getDbArchive()->fetchAll($select);
+
+    
+    	return $results;
     }
     
     
@@ -271,7 +299,7 @@ class Application_Model_TradeMapper
      * 
      * @access protected
      */
-    protected function _setSearchParameters( Zend_DB_Table_Select $select, array $modifiers, array $options){
+    protected function _setSearchParameters( Zend_DB_Table_Select $select, array $modifiers, array $options, $today = false){
 
     	if (isset($modifiers['currency'])){
     		$select->where('not_curr_1 = ?', $modifiers['currency']);
@@ -301,26 +329,30 @@ class Application_Model_TradeMapper
     	}
     	
     	//specify either number of trades, from-to dates or since a certain number of hours
-    	if (isset($modifiers['last'])){
-    		$select->limit($modifiers['last'], 0);
+    	// or if "today" flag is set, only today's trades
+    	if ($today){
+    		$select->where('execution_date >= date(now())');
     	}
-    	elseif (isset( $modifiers['from'])){
-    		$select->where('execution_date >= ?', $modifiers['from'] );
-    		if (isset ($modifiers['to'])){
-    			$select->where('execution_date < ?', $modifiers['to'] );
+    	else{
+    		if (isset($modifiers['last'])){
+    			$select->limit($modifiers['last'], 0);
     		}
-    	}
-    	else {
-    		if (isset($modifiers['since'])){
-    			$since = min( $options['rest']['maximum_since'], $modifiers['since']);
+    		elseif (isset( $modifiers['from'])){
+    			$select->where('execution_date >= ?', $modifiers['from'] );
+    			if (isset ($modifiers['to'])){
+    				$select->where('execution_date < ?', $modifiers['to'] );
+    			}
     		}
-    		else{
-    			$since = $options['rest']['default_since'];
+    		else {
+    			if (isset($modifiers['since'])){
+    				$since = min( $options['rest']['maximum_since'], $modifiers['since']);
+    			}
+    			else{
+    				$since = $options['rest']['default_since'];
+    			}
+    			$select->where('execution_date >=  DATE_SUB(utc_timestamp(), INTERVAL ? HOUR)', $since);
     		}
-    		$select->where('execution_date >=  DATE_SUB(utc_timestamp(), INTERVAL ? HOUR)', $since);
-    	}
-    }    
-	
-	
+    	}    
+    }	
 }
 
