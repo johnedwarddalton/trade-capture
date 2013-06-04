@@ -9,12 +9,13 @@
 		</tr>
 	</thead>
 	<tbody>
-		<?php foreach ($this->entries as $entry): ?>
+		<?php $len = count($this->dates);
+		for ($i = 0; $i < $len; $i++): ?>
 		<tr>
-			<td><?php echo $this->escape($entry['date']); ?></td>
-			<td><?php echo $this->escape($entry['volume']); ?></td>
+			<td><?php echo $this->escape($this->dates[$i]); ?> </td>
+			<td><?php echo $this->escape($this->volumes[$i]); ?>
 		</tr>
-		<?php endforeach; ?>
+		<?php endfor; ?>
 		</tbody>		
 	</table>
 </div>

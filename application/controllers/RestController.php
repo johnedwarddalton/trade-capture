@@ -189,14 +189,14 @@ class RestController extends Zend_Controller_Action
     	$params = $this->getRequest()->getParams();
     	$options = $this->_getConfigOptions();
     	$results = $this->_getTradeMapper()->volumeHistory ($params, $options);
-    	$entries = array();
+    	$dates = array();
+    	$volumes = array();
     	foreach ($results as $row){
-    		$entry =  array();
-    		$entry['date'] = $row['date(execution_date)'];
-    		$entry['volume'] = $row['sum(not_amount_1)'];
-    		$entries[] = $entry;
+    		$dates[] = $row['date(execution_date)'];
+    		$volumes[] = $row['sum(not_amount_1)'];
     	}
-    	$this->view->entries = $entries;
+    	$this->view->dates = $dates;
+    	$this->view->volumes = $volumes;
 	
     }
     

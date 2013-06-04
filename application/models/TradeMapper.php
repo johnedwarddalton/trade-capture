@@ -281,6 +281,9 @@ class Application_Model_TradeMapper
     	$select = $this->getDbArchive()->select();
     	$select->from('trade_archive',array('date(execution_date)', 'sum(not_amount_1)'));
     	$select->group('date(execution_date)');
+    	// avoid weekends;
+    	$select->where('dayofweek(execution_date) <> 1');
+    	$select->where('dayofweek(execution_date) <> 7');
     	$this->_setSearchParameters ( $select, $modifiers, $options);
 
     	//default sorting
@@ -328,19 +331,31 @@ class Application_Model_TradeMapper
     		$select->where('term < ?', $modifiers['term_max']);
     	}
     	
+    	
     	//specify either number of trades, from-to dates or since a certain number of hours
     	// or if "today" flag is set, only today's trades
     	if ($today){
-    		$select->where('execution_date >= date(now())');
+    		$select->where('execution_date >= DATE(NOW())');
     	}
     	else{
+    		//specify the day if the week
+    		if (isset($modifiers['dow'])){
+    			$select->where('DAYOFWEEK(DATE(execution_date)) = ?', $modifiers['dow'] );
+    		}
+    		
     		if (isset($modifiers['last'])){
     			$select->limit($modifiers['last'], 0);
     		}
     		elseif (isset( $modifiers['from'])){
-    			$select->where('execution_date >= ?', $modifiers['from'] );
+    			$select->where('DATE(execution_date) >= DATE_SUB(DATE(NOW()), INTERVAL ? DAY)', $modifiers['from'] );
     			if (isset ($modifiers['to'])){
-    				$select->where('execution_date < ?', $modifiers['to'] );
+    				$select->where('DATE(execution_date) <= DATE_SUB(DATE(NOW()), INTERVAL ? DAY)', $modifiers['to'] );
+    			}
+    		}
+    		elseif (isset( $modifiers['begin'])){
+    			$select->where('execution_date >= ?', $modifiers['begin'] );
+    			if (isset ($modifiers['end'])){
+    				$select->where('execution_date < ?', $modifiers['end'] );
     			}
     		}
     		else {
