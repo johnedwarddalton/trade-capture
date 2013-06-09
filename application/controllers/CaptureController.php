@@ -265,6 +265,7 @@ class CaptureController extends Zend_Controller_Action
      */
     protected function _processFeedData( $entries)
     {
+    	$transactions = array();
     	if (count($entries)){
     		$options = $this->_getConfigOptions();
     		$header_file = $options['data']['dir'] . $options['data']['header'];
@@ -272,28 +273,28 @@ class CaptureController extends Zend_Controller_Action
     		$header = fopen($header_file, 'r');
     		$field_names=fgetcsv($header);
     		fclose($header);  		
-    	}
-    	
-    	//process the "description" field from each rss "item"
-    	$transactions = array();
-    	foreach ($entries as $entry){
-    		// 'description' field is a CSV string so parse it 
-    		$parsed_data=str_getcsv($entry['description']);
-    		if ( count($field_names) === count ($parsed_data)){
-    			$feed_data = array_combine($field_names, $parsed_data);
-    			
-    			//set the depository name here
-    			$feed_data['depository'] = 'DTCC';
+    	    	
+    		//process the "description" field from each rss "item"
 
-    			$transaction = new Application_Model_Transaction();
-    			$transaction->populateFromDescriptionData($feed_data);		
-    			$transactions[]=$transaction;
-    		}
-    		else{
-    			Zend_Registry::get('logger')->
-    			    log('Feed data length does not match. Specification may have changed', Zend_Log::WARN);
-    		}
+    		foreach ($entries as $entry){
+    			// 'description' field is a CSV string so parse it 
+    			$parsed_data=str_getcsv($entry['description']);
+    			if ( count($field_names) === count ($parsed_data)){
+    				$feed_data = array_combine($field_names, $parsed_data);
+    			
+    				//set the depository name here
+    				$feed_data['depository'] = 'DTCC';
+
+    				$transaction = new Application_Model_Transaction();
+    				$transaction->populateFromDescriptionData($feed_data);		
+    				$transactions[]=$transaction;
+    			}
+    			else{
+    				Zend_Registry::get('logger')->
+    			    	log('Feed data length does not match. Specification may have changed', Zend_Log::WARN);
+    			}
     		
+    		}
     	}    
     	return $transactions;
     }

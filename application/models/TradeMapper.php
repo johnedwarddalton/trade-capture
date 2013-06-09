@@ -280,14 +280,14 @@ class Application_Model_TradeMapper
     	 
     	$select = $this->getDbArchive()->select();
     	$select->from('trade_archive',array('date(execution_date)', 'sum(not_amount_1)'));
-    	$select->group('date(execution_date)');
+    	$select->group('DATE(execution_date)');
     	// avoid weekends;
     	$select->where('dayofweek(execution_date) <> 1');
     	$select->where('dayofweek(execution_date) <> 7');
     	$this->_setSearchParameters ( $select, $modifiers, $options);
 
     	//default sorting
-    	$str_order = 'execution_date ASC';
+    	$str_order = 'DATE(execution_date) ASC';
     	$select->order($str_order);
     	$results = $this->getDbArchive()->fetchAll($select);
 
