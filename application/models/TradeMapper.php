@@ -220,7 +220,7 @@ class Application_Model_TradeMapper
     			$select->from('trade', array('num' => 'count(trade_id)'));
     			$this->_setSearchParameters($select, $modifiers, $options);
     			$select->where($str_where);
-    			$result = $this->_getTradeMapper()->countRows($select);
+    			$result = $this->countRows($select);
     			$total_filtered_rows = $result['num'];    			 
     		}     
     	}
