@@ -194,7 +194,11 @@ class Application_Model_TradeMapper
     public function tradeQuery(array $columns, array $modifiers, array $options)
     {
     	
-    	$select = $this->getDbTable()->select();	 
+
+    	
+    	$select = $this->getDbTable()->select();	
+
+    	
     
     	// get the total number of columns without any filtering
     	$select->from('trade', array('num' => 'count(trade_id)'));
@@ -303,7 +307,26 @@ class Application_Model_TradeMapper
      * @access protected
      */
     protected function _setSearchParameters( Zend_DB_Table_Select $select, array $modifiers, array $options, $today = false){
-
+		
+    	//  decide which types of trade we are interested in
+    	if (isset($modifiers['trans'])){
+    		switch (strtolower($modifiers['trans']) ){
+    			case 'term' :
+    				$select->where('trans_type = ?', 'Termination');
+    				break;
+    			case 'all':
+    				// do nothing;
+    				break;
+    			default:
+    				// only get data for trades
+    				$select->where('trans_type = ?', 'Trade');
+    				break;
+    		}
+    	}
+    	else {
+    		$select->where('trans_type = ?', 'Trade');
+    	}
+    	
     	if (isset($modifiers['currency'])){
     		$select->where('not_curr_1 = ?', $modifiers['currency']);
     	}

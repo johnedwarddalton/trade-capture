@@ -341,12 +341,11 @@ class CaptureController extends Zend_Controller_Action
     protected function _saveIfTrade($data){
     	switch (strtolower($data['trans_type']) ){
     		case 'trade' :
-    
+    		case 'termination' :
     			$this->_getTradeMapper()->save($data);
     			break;
     		case 'amendment':
     		case 'novation':
-    		case 'termination':
     		default:
     			// do nothing
     			break;
