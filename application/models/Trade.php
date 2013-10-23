@@ -11,10 +11,10 @@
  */
 class Application_Model_Trade
 {
-	public $creation_date;
+	public $creation_date_secs;
 	public $depository;
 	public $trade_id;
-	public $execution_date;
+	public $exec_date_secs;
 	public $cleared;
 	public $collat;
 	public $except;

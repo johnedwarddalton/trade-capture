@@ -103,17 +103,27 @@ class Application_Model_TradeMapper
 	 * function to find a single trade and populate trade object.
 	 * 
 	 * @param integer $id       unique key
-	 * @param Application_Model_Trade $trade
+	 *
+	 * @return array      Associative array of database row entries
 	 * 
 	 */
-	public function find($id, Application_Model_Trade $trade)
-	{
+	public function find($id)
+	{	
+		$entry = array();
 		$trade_id  = (int) $id;
         $rowset = $this->getDbTable()->find($trade_id);
         $row = $rowset->current();
         if ($row){
-        	$trade->exchangeArray($row);
+        	foreach ($row as $key => $value){
+        		if (!$value){
+        			$entry['key'] ='';
+        		}
+        		else {
+        			$entry[$key] = $value;
+        		}
+        	}
         }
+        return $entry;
 	}
 	
 	/**
