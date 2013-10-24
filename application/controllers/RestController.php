@@ -97,21 +97,14 @@ class RestController extends Zend_Controller_Action
 		if ( isset($params['id']) ){			//single trade request
        		$trade_id = (int) $params['id'];
        		$entry = $this->_getTradeMapper()->find($trade_id, $entry);
-       		// $entry = $trade->toArray();
-       		
-       		// set null values to blanks
-       		//foreach ($entry as $key=>$value){
-       		//if (!$value){
-       		//	$entry[$key] = '';
-       		//}
+      		
        	}
        $this->view->entry = $entry;   
 
   }
 
 
-    
- 
+
 
     /**
      * datasource for jquery dataTables.  Returns data 
@@ -123,22 +116,26 @@ class RestController extends Zend_Controller_Action
      */
     public function tableAction()
     {
-		$startTime = microtime(true);
     	
     	$params = $this->getRequest()->getParams();
     	$options = $this->_getConfigOptions();
     	
     	//list of columns to be returned
     	$columns = array(
-    			'creation_date_secs' => '(unix_timestamp(creation_date))','trans_type', 'trade_id', 'cleared', 'exec_date_secs' => '(unix_timestamp(execution_date))', 
-    			'eff_date', 'end_date', 'term', 'not_curr_1', 'not_curr_2', 'inst_type','inst_subtype', 'price', 'add_price','not_amount_1', 'not_amt_capped', 
-    			'not_amount_2','und_asset_1', 'und_asset_2', 'opt_strike','opt_type','opt_curr', 'opt_premium', 'opt_start', 'opt_expiry','opt_tenor', 'opt_add_price_type_1', 'opt_add_price_1', 
+    			'creation_date_secs' => '(unix_timestamp(creation_date))','trans_type', 
+    			'trade_id', 'cleared', 'exec_date_secs' => '(unix_timestamp(execution_date))', 
+    			'eff_date', 'end_date', 'term', 'not_curr_1', 'not_curr_2',
+    			 'inst_type','inst_subtype', 'price', 'add_price','not_amount_1',
+    			 'not_amt_capped', 'not_amount_2','und_asset_1', 'und_asset_2', 'opt_strike',
+    			'opt_type','opt_curr', 'opt_premium', 'opt_start', 'opt_expiry',
+    			'opt_tenor', 'opt_add_price_type_1', 'opt_add_price_1', 
     	);
     	
     	$results = $this->_getTradeMapper()->tradeQuery ($columns,$params, $options);
-    	$timeAfterQuery = microtime(true);    	
+    	  	
     	$entries=array();
     	foreach ($results['trades'] as $trade){
+    		
     		//$entry = array();
     		
     		//transfer returned columns
@@ -158,6 +155,8 @@ class RestController extends Zend_Controller_Action
     			$entry['opt_prem_bps'] = round(10000 * $opt_prem_val / $trade->not_amount_1,1);
     		}
     		
+    		
+    		/* Deprecated Date Loop - was really hurting performance
     		//ensure we have a locale set for Zend_Date functions
     		$locale = new Zend_Locale('en_GB');
     		
@@ -178,18 +177,18 @@ class RestController extends Zend_Controller_Action
     		$entry['opt_start_short'] = $date->toString("MMM-YY");
     		$date = new Zend_Date($trade->opt_expiry,$locale);
     		$entry['opt_expiry_short'] = $date->toString("MMM-YY");
+    		*/
+    		
+    		
     		$entries[] = $entry;
     	}
     	
-    	$timeAfterLoop = microtime(true);
     	$this->view->aaData = $entries;
     	$this->view->daily_vol = $results['daily_vol'];
     	$this->view->sEcho = $results['echo'];
     	$this->view->iTotalRecords = $results['total_rows'];
     	$this->view->iTotalDisplayRecords = $results['filtered_rows'];
-    	$this->view->queryTime = $timeAfterQuery - $startTime;
-    	$this->view->timeForLoop = $timeAfterLoop - $timeAfterQuery;
-    	$this->view->totalTime = microtime(true) - $startTime;
+
     }
     
     /**

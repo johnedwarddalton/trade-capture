@@ -116,7 +116,7 @@ class Application_Model_TradeMapper
         if ($row){
         	foreach ($row as $key => $value){
         		if (!$value){
-        			$entry['key'] ='';
+        			$entry[$key] ='';
         		}
         		else {
         			$entry[$key] = $value;
@@ -224,8 +224,8 @@ class Application_Model_TradeMapper
     		if ( $search_string  !== "" ){
     			$num_cols = count($columns);
     			$filter = array();
-    			for ( $i=0 ; $i<$num_cols ; $i++ ){
-    				$filter[] = $columns[$i]. " LIKE '%" . $search_string  . "%'";
+    			foreach ( $columns as $key => $value){
+    				$filter[] = $value. " LIKE '%" . $search_string  . "%'";
     			}
     			$str_where = implode(' OR ', $filter);
     			 
